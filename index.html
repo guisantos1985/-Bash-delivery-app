@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurante Alma'D</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: system-ui;
+    background: #f1f3f6;
+}
+
+.header {
+    background: #d69928;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.container {
+    padding: 15px;
+    margin-bottom: 280px;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.qtd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+button {
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.btn-mais { background: #28a745; color: white; }
+.btn-menos { background: #ccc; }
+
+.carrinho {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    border-top: 1px solid #ccc;
+    padding: 15px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.finalizar {
+    width: 100%;
+    padding: 12px;
+    background: #28a745;
+    color: white;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.limpar {
+    width: 100%;
+    padding: 10px;
+    background: #999;
+    color: white;
+    border-radius: 8px;
+    margin-top: 5px;
+}
+
+.total {
+    font-weight: bold;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">🍽️ Restaurante Alma'D</div>
+
+<div class="container" id="produtos"></div>
+
+<div class="carrinho">
+    <div id="listaCarrinho"></div>
+    <div class="total" id="total">Total: R$0,00</div>
+
+    <input type="text" id="nome" placeholder="Seu nome">
+    <input type="text" id="endereco" placeholder="Endereço">
+
+    <select id="pagamento" onchange="verificarPagamento()">
+        <option value="">Forma de pagamento</option>
+        <option>Dinheiro</option>
+        <option>Pix</option>
+        <option>Cartão</option>
+    </select>
+
+    <div id="areaTroco" style="display:none;">
+        <select id="troco">
+            <option value="nao">Sem troco</option>
+            <option value="sim">Precisa de troco</option>
+        </select>
+        <input type="text" id="valorTroco" placeholder="Troco para quanto?">
+    </div>
+
+    <button class="limpar" onclick="limparCarrinho()">Limpar Carrinho</button>
+
+    <button class="finalizar" onclick="finalizarPedido()">
+        Finalizar Pedido
+    </button>
+</div>
+
+<script>
+const produtos = [
+    { nome: "Tropeiro Pequeno", preco: 17 },
+    { nome: "Tropeiro Grande", preco: 19 },
+    { nome: "Feijoada Pequena", preco: 17 },
+    { nome: "Feijoada Grande", preco: 19 },
+    { nome: "Refrigerante Lata", preco: 5 },
+    { nome: "Refrigerante 200ml", preco: 3 }
+]
+
+let carrinho = {}
+const taxaEntrega = 5
+
+function formatar(valor) {
+    return valor.toFixed(2).replace(".", ",")
+}
+
+function renderProdutos() {
+    const div = document.getElementById("produtos")
+    div.innerHTML = ""
+
+    produtos.forEach((produto, index) => {
+        const qtd = carrinho[index]?.quantidade || 0
+
+        div.innerHTML += `
+            <div class="card">
+                <div>${produto.nome}<br><small>R$${formatar(produto.preco)}</small></div>
+                <div class="qtd">
+                    <button class="btn-menos" onclick="remover(${index})">-</button>
+                    <span>${qtd}</span>
+                    <button class="btn-mais" onclick="adicionar(${index})">+</button>
+                </div>
+            </div>
+        `
+    })
+}
+
+function adicionar(index) {
+    if (!carrinho[index]) {
+        carrinho[index] = { ...produtos[index], quantidade: 0 }
+    }
+    carrinho[index].quantidade++
+    atualizarCarrinho()
+    renderProdutos()
+}
+
+function remover(index) {
+    if (carrinho[index]) {
+        carrinho[index].quantidade--
+        if (carrinho[index].quantidade <= 0) {
+            delete carrinho[index]
+        }
+    }
+    atualizarCarrinho()
+    renderProdutos()
+}
+
+function atualizarCarrinho() {
+    const lista = document.getElementById("listaCarrinho")
+    lista.innerHTML = ""
+
+    let total = 0
+
+    Object.values(carrinho).forEach(item => {
+        lista.innerHTML += `<div>${item.nome} x${item.quantidade} - R$${formatar(item.preco * item.quantidade)}</div>`
+        total += item.preco * item.quantidade
+    })
+
+    total += taxaEntrega
+
+    document.getElementById("total").innerText =
+        "Total + entrega: R$" + formatar(total)
+}
+
+function verificarPagamento() {
+    const pagamento = document.getElementById("pagamento").value
+    document.getElementById("areaTroco").style.display =
+        pagamento === "Dinheiro" ? "block" : "none"
+}
+
+function limparCarrinho() {
+    carrinho = {}
+    atualizarCarrinho()
+    renderProdutos()
+}
+
+function finalizarPedido() {
+    if (!confirm("Deseja finalizar o pedido?")) return
+
+    if (Object.keys(carrinho).length === 0) {
+        alert("Carrinho vazio!")
+        return
+    }
+
+    const nome = document.getElementById("nome").value
+    const endereco = document.getElementById("endereco").value
+    const pagamento = document.getElementById("pagamento").value
+    const precisaTroco = document.getElementById("troco")?.value
+    const valorTroco = document.getElementById("valorTroco")?.value
+
+    if (!nome || !endereco || !pagamento) {
+        alert("Preencha todos os campos!")
+        return
+    }
+
+    if (pagamento === "Dinheiro" && precisaTroco === "sim" && !valorTroco) {
+        alert("Informe o valor para o troco!")
+        return
+    }
+
+    let mensagem = "🍽️ Restaurante Alma'D%0A%0A"
+    mensagem += `Nome: ${nome}%0A`
+    mensagem += `Endereço: ${endereco}%0A`
+    mensagem += `Pagamento: ${pagamento}%0A`
+
+    if (pagamento === "Dinheiro" && precisaTroco === "sim") {
+        mensagem += `Troco para: R$${valorTroco}%0A`
+    }
+
+    mensagem += "%0A--------------------%0A"
+    mensagem += "Pedido:%0A"
+
+    let total = 0
+
+    Object.values(carrinho).forEach(item => {
+        mensagem += `- ${item.nome} x${item.quantidade} (R$${formatar(item.preco * item.quantidade)})%0A`
+        total += item.preco * item.quantidade
+    })
+
+    total += taxaEntrega
+
+    mensagem += `%0AEntrega: R$${formatar(taxaEntrega)}`
+    mensagem += `%0ATotal: R$${formatar(total)}`
+
+    let numero = "5531996591618"
+
+    window.open(`https://wa.me/${numero}?text=${mensagem}`, "_blank")
+}
+
+renderProdutos()
+</script>
+
+</body>
+</html>
